@@ -26,9 +26,9 @@ Even if the full AI stack is not running, the repo shows how this layer would fi
 
 ## Tech Stack
 
-- **Framework:** FastAPI
-- **Runtime:** Python 3 (reference project was built for <= 3.11)
-- **HTTP Server:** Uvicorn
+- **Framework:** FastAPI  
+- **Runtime:** Python 3 (reference project was built for ≤ 3.11)  
+- **HTTP Server:** Uvicorn  
 - **AI (intended):**
   - Text generation via Gemini or similar LLM
   - Text‑to‑speech via ElevenLabs
@@ -45,10 +45,10 @@ Even if the full AI stack is not running, the repo shows how this layer would fi
 
 Intended flow:
 
-1. Chrome extension → Node backend (session + events).
-2. Node backend → Python AI service (structured request).
-3. Python AI service → LLM + TTS → returns script + audio info.
-4. Node backend → persists fields (`scriptText`, `audioFileName`) on the Session.
+1. Chrome extension → Node backend (session + events).  
+2. Node backend → Python AI service (structured request).  
+3. Python AI service → LLM + TTS → returns script + audio info.  
+4. Node backend → persists fields (`scriptText`, `audioFileName`) on the Session.  
 5. Frontend → displays script/audio for the user.
 
 ### Example Endpoint Design
@@ -57,19 +57,23 @@ These endpoints describe the **target contract** (even if implementation is part
 
 **POST `/summaries`**
 
-- **Request body example:**
+**Request body example:**
 
 {
 "sessionId": 1,
 "events": [
-{ "timestamp": "2025-01-01T10:00:00Z", "url": "https://example.com", "type": "navigate" }
+{
+"timestamp": "2025-01-01T10:00:00Z",
+"url": "https://example.com",
+"type": "navigate"
+}
 ],
 "userInstructions": "Explain this flow for a product manager."
 }
 
 text
 
-- **Response example:**
+**Response example:**
 
 {
 "title": "Onboarding flow for Example App",
@@ -89,40 +93,44 @@ text
 
 **POST `/tts` (optional)**
 
-- Accepts `{ "sessionId": 1, "script": "..." }`.
-- Returns `{ "audioFileName": "session-1-voiceover.mp3" }`.
+- Accepts:
+
+{ "sessionId": 1, "script": "..." }
+
+text
+
+- Returns:
+
+{ "audioFileName": "session-1-voiceover.mp3" }
+
+text
 
 These endpoints would be called from the Node backend when processing a session.
 
 ---
 
-## Current Status
+## Current Status in the Clone
 
-- Repo is a **local clone** of the reference `ProductAI` project.
-- Project structure (typical FastAPI layout):
+- The Node backend exposes `POST /api/v1/sessions/:id/process` as the **AI processing** step for each session. For the assignment demo this endpoint is implemented entirely inside Node as a **mock**: it updates the session status and fills `scriptText` and `audioFileName` with demo values.
+- The frontend surfaces this as a **“Process with AI”** button on the session dashboard and detail pages. The Chrome extension is responsible only for sending structured DOM events into the backend; it does not trigger AI directly or stream audio/video.
+- This FastAPI project is therefore treated as an **intended future AI layer**: the plan is for the Node process endpoint to call a `/summaries` endpoint here, receive cleaned text (and optionally an audio filename), and then persist those results on the `Session` model.
+
+---
+
+## Project Structure
+
+Typical layout (following the reference `ProductAI` project):
 
 clueso-clone-ai-python/
 app/
 main.py # FastAPI entrypoint (app = FastAPI())
-routes/... # Endpoint definitions
-services/... # AI, TTS, audio utilities
+routes/ # Endpoint definitions
+services/ # AI, TTS, audio utilities
 requirements.txt
 test_events.json # Example input data for testing
 ...
 
 text
-
-- Attempts to run:
-
-python -m uvicorn app.main:app --reload --port 8000
-
-text
-
-- Current blockers on the local environment:
-  - `ModuleNotFoundError: No module named 'pyaudioop'` raised inside `pydub/utils.py`.
-  - Python 3.13 + Windows combination does not ship `audioop` / `pyaudioop`, so `pydub` cannot function as expected without additional workarounds.
-
-Because of this, full TTS/audio is **not** wired, and the Node backend uses a mock implementation instead.
 
 ---
 
@@ -147,8 +155,8 @@ userInstructions: "Explain this as a product walkthrough."
 const { title, short_summary, detailed_steps } = response.data;
 
 // Save on the Session model
-session.scriptText = short_summary + '\n\n' + detailed_steps.join('\n');
-session.audioFileName = null; // or from /tts endpoint
+session.scriptText = short_summary + "\n\n" + detailed_steps.join("\n");
+session.audioFileName = null; // or a value returned by a /tts endpoint
 
 text
 
@@ -187,10 +195,10 @@ uvicorn app.main:app --reload --port 8000
 
 text
 
-4. **Test basic health endpoints**
+4. **Test basic endpoints**
 
-- `GET http://localhost:8000/` (if defined)
-- `POST http://localhost:8000/summaries` with a minimal JSON payload
+- `GET http://localhost:8000/` (if defined)  
+- `POST http://localhost:8000/summaries` with a minimal JSON payload  
 
 On the current machine this fails with `ModuleNotFoundError: No module named 'pyaudioop'` coming from `pydub`.
 
@@ -198,10 +206,10 @@ On the current machine this fails with `ModuleNotFoundError: No module named 'py
 
 ## Environment & Compatibility Notes
 
-- Reference project expects a Python version where `audioop` / `pyaudioop` is available (e.g. 3.10–3.11 on Linux/macOS).
+- The reference project expects a Python version where `audioop` / `pyaudioop` is available (for example Python 3.10–3.11 on Linux/macOS).  
 - On Windows + Python 3.13:
   - `pydub` cannot import `pyaudioop`, which blocks full audio processing.
-- External services (Gemini, ElevenLabs) require API keys set via environment variables (see original `ProductAI` README for exact names).
+- External services (Gemini, ElevenLabs) require API keys set via environment variables (see the original `ProductAI` README for exact names).
 
 For this assignment, those keys are **not required**, because:
 
@@ -231,5 +239,3 @@ If time and environment allow, the next steps would be:
 
    - On a compatible environment (e.g. Linux VM or container with Python 3.11), restore `pydub` and TTS logic.
    - Add a `/tts` endpoint and connect it to ElevenLabs.
-
----
